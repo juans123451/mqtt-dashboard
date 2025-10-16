@@ -12,19 +12,20 @@ const io = new Server(server);
 // ------------------- CONFIGURACIÓN MQTT -------------------
 const MQTT_BROKER = "mqtt://broker.emqx.io";
 const MQTT_TOPIC_SENSORES = "esp32/sensores";
-const MQTT_TOPIC_LED = "esp32/led";          // 🔹 Publica comandos al ESP32
-const MQTT_TOPIC_LED_STATUS = "esp32/led/status"; // 🔹 (Opcional) Estado real del LED
+const MQTT_TOPIC_LED = "esp32/led"; // Comando para controlar LED
+const MQTT_TOPIC_LED_STATUS = "esp32/led/status"; // Estado real del LED
 
 const client = mqtt.connect(MQTT_BROKER);
 
+// ------------------- CONEXIÓN MQTT -------------------
 client.on("connect", () => {
   console.log("✅ Conectado al broker MQTT");
 
   client.subscribe([MQTT_TOPIC_SENSORES, MQTT_TOPIC_LED_STATUS], (err) => {
-    if (!err) {
-      console.log(`📡 Suscrito a: ${MQTT_TOPIC_SENSORES} y ${MQTT_TOPIC_LED_STATUS}`);
-    } else {
+    if (err) {
       console.error("❌ Error al suscribirse a topics:", err);
+    } else {
+      console.log(`📡 Suscrito a: ${MQTT_TOPIC_SENSORES} y ${MQTT_TOPIC_LED_STATUS}`);
     }
   });
 });
@@ -34,17 +35,15 @@ client.on("message", (topic, message) => {
   try {
     const msg = message.toString();
 
-    // 🔸 Datos de sensores
     if (topic === MQTT_TOPIC_SENSORES) {
       const data = JSON.parse(msg);
       console.log("📩 Datos desde ESP32:", data);
-      io.emit("sensorData", data);
+      io.emit("sensorData", data); // Enviar datos al dashboard
     }
 
-    // 🔸 Estado del LED
     if (topic === MQTT_TOPIC_LED_STATUS) {
       console.log("💡 Estado del LED:", msg);
-      io.emit("ledStatus", msg); // Reenviamos al navegador
+      io.emit("ledStatus", msg); // Enviar estado del LED al dashboard
     }
 
   } catch (error) {
@@ -52,14 +51,13 @@ client.on("message", (topic, message) => {
   }
 });
 
-// ------------------- CONTROL DESDE EL DASHBOARD -------------------
+// ------------------- SOCKET.IO (Dashboard) -------------------
 io.on("connection", (socket) => {
   console.log("🖥️ Cliente conectado al dashboard");
 
-  // Escuchar clicks de botones desde el navegador
   socket.on("ledControl", (estado) => {
-    console.log(`💡 Comando LED recibido desde dashboard: ${estado}`);
-    client.publish(MQTT_TOPIC_LED, estado); // Envía al ESP32 vía MQTT
+    console.log(`💡 Comando LED recibido: ${estado}`);
+    client.publish(MQTT_TOPIC_LED, estado); // Enviar comando al ESP32
   });
 
   socket.on("disconnect", () => {
@@ -68,7 +66,7 @@ io.on("connection", (socket) => {
 });
 
 // ------------------- SERVIDOR WEB -------------------
-app.use(express.static("public")); // Tu carpeta con index.html
+app.use(express.static("public")); // Sirve tu carpeta del frontend
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
