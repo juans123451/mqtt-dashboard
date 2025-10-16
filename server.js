@@ -34,9 +34,12 @@ client.on("message", (topic, message) => {
   }
 });
 
+
 // ------------------- SERVIDOR WEB -------------------
 app.use(express.static("public")); // Carpeta con tu index.html
 
-server.listen(3000, () => {
-  console.log("🚀 Servidor web en http://localhost:3000");
+// Render usa un puerto dinámico, por eso usamos process.env.PORT
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🚀 Servidor web en puerto ${PORT}`);
 });
