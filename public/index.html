@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🌱 Dashboard IoT Agricultura</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #1a4d2e 0%, #0f2818 100%);
+        color: #f0fdf4;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        padding: 2rem 1rem;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          radial-gradient(circle at 20% 50%, rgba(34, 197, 94, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 80%, rgba(74, 222, 128, 0.1) 0%, transparent 50%);
+        pointer-events: none;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+        z-index: 1;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        color: #86efac;
+        text-shadow: 0 0 20px rgba(134, 239, 172, 0.5);
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        color: #bbf7d0;
+        font-size: 1rem;
+        opacity: 0.9;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        max-width: 1200px;
+        width: 100%;
+        z-index: 1;
+      }
+
+      .card {
+        background: linear-gradient(145deg, rgba(21, 94, 59, 0.4), rgba(20, 83, 45, 0.6));
+        backdrop-filter: blur(10px);
+        padding: 1.8rem;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                    0 0 0 1px rgba(134, 239, 172, 0.1);
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(134, 239, 172, 0.2);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #22c55e, #4ade80, #22c55e);
+        transform: translateX(-100%);
+        transition: transform 0.6s ease;
+      }
+
+      .card:hover::before {
+        transform: translateX(0);
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(34, 197, 94, 0.3),
+                    0 0 0 1px rgba(134, 239, 172, 0.3);
+      }
+
+      .sensor-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+        filter: drop-shadow(0 0 10px rgba(134, 239, 172, 0.4));
+      }
+
+      .sensor-label {
+        font-size: 0.95rem;
+        color: #bbf7d0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.8rem;
+        font-weight: 600;
+      }
+
+      .sensor-value {
+        font-size: 2.5rem;
+        color: #86efac;
+        font-weight: 700;
+        text-shadow: 0 0 15px rgba(134, 239, 172, 0.4);
+        margin-bottom: 0.3rem;
+      }
+
+      .sensor-unit {
+        font-size: 1rem;
+        color: #86efac;
+        opacity: 0.8;
+      }
+
+      .status-bar {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(134, 239, 172, 0.2);
+        font-size: 0.85rem;
+        color: #bbf7d0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+
+      .status-indicator {
+        width: 8px;
+        height: 8px;
+        background: #22c55e;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+          box-shadow: 0 0 10px #22c55e;
+        }
+        50% {
+          opacity: 0.5;
+          box-shadow: 0 0 20px #22c55e;
+        }
+      }
+
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 2rem;
+        }
+        
+        .dashboard {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🌱 Dashboard IoT Agricultura</h1>
+      <p class="subtitle">Monitoreo en tiempo real de sensores ESP32</p>
+    </div>
+
+    <div class="dashboard">
+      <div class="card">
+        <span class="sensor-icon">🌡️</span>
+        <div class="sensor-label">Temperatura Ambiente</div>
+        <div class="sensor-value">
+          <span id="tempDHT">--</span>
+          <span class="sensor-unit">°C</span>
+        </div>
+        <div class="status-bar">
+          <span class="status-indicator"></span>
+          Sensor DHT11
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="sensor-icon">💧</span>
+        <div class="sensor-label">Humedad Relativa</div>
+        <div class="sensor-value">
+          <span id="humDHT">--</span>
+          <span class="sensor-unit">%</span>
+        </div>
+        <div class="status-bar">
+          <span class="status-indicator"></span>
+          Sensor DHT11
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="sensor-icon">🌤️</span>
+        <div class="sensor-label">Temperatura BMP</div>
+        <div class="sensor-value">
+          <span id="tempBMP">--</span>
+          <span class="sensor-unit">°C</span>
+        </div>
+        <div class="status-bar">
+          <span class="status-indicator"></span>
+          Sensor BMP180
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="sensor-icon">🧭</span>
+        <div class="sensor-label">Presión Atmosférica</div>
+        <div class="sensor-value">
+          <span id="presion">--</span>
+          <span class="sensor-unit">hPa</span>
+        </div>
+        <div class="status-bar">
+          <span class="status-indicator"></span>
+          Sensor BMP180
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="sensor-icon">📏</span>
+        <div class="sensor-label">Distancia</div>
+        <div class="sensor-value">
+          <span id="distancia">--</span>
+          <span class="sensor-unit">cm</span>
+        </div>
+        <div class="status-bar">
+          <span class="status-indicator"></span>
+          Sensor Ultrasónico
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const socket = io();
+
+      socket.on("sensorData", (data) => {
+        document.getElementById("tempDHT").textContent = data.temperatura_dht.toFixed(1);
+        document.getElementById("humDHT").textContent = data.humedad_dht.toFixed(1);
+        document.getElementById("tempBMP").textContent = data.temperatura_bmp.toFixed(1);
+        document.getElementById("presion").textContent = data.presion.toFixed(1);
+        document.getElementById("distancia").textContent = data.distancia_cm.toFixed(1);
+      });
+    </script>
+  </body>
+</html>
