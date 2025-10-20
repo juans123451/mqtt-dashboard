@@ -12,8 +12,9 @@ const io = new Server(server);
 // ------------------- CONFIGURACIÓN MQTT -------------------
 const MQTT_BROKER = "mqtt://broker.emqx.io";
 const MQTT_TOPIC_SENSORES = "esp32/sensores";
-const MQTT_TOPIC_LED = "esp32/led"; // Comando para controlar LED
-const MQTT_TOPIC_LED_STATUS = "esp32/led/status"; // Estado real del LED
+const MQTT_TOPIC_LED = "esp32/led";
+const MQTT_TOPIC_LED_STATUS = "esp32/led/status";
+const MQTT_TOPIC_SERVO = "esp32/servo"; // Nuevo topic para servo
 
 const client = mqtt.connect(MQTT_BROKER);
 
@@ -38,12 +39,12 @@ client.on("message", (topic, message) => {
     if (topic === MQTT_TOPIC_SENSORES) {
       const data = JSON.parse(msg);
       console.log("📩 Datos desde ESP32:", data);
-      io.emit("sensorData", data); // Enviar datos al dashboard
+      io.emit("sensorData", data);
     }
 
     if (topic === MQTT_TOPIC_LED_STATUS) {
       console.log("💡 Estado del LED:", msg);
-      io.emit("ledStatus", msg); // Enviar estado del LED al dashboard
+      io.emit("ledStatus", msg);
     }
 
   } catch (error) {
@@ -57,7 +58,12 @@ io.on("connection", (socket) => {
 
   socket.on("ledControl", (estado) => {
     console.log(`💡 Comando LED recibido: ${estado}`);
-    client.publish(MQTT_TOPIC_LED, estado); // Enviar comando al ESP32
+    client.publish(MQTT_TOPIC_LED, estado);
+  });
+
+  socket.on("servoControl", (estado) => {
+    console.log(`⚙️ Comando servo recibido: ${estado}`);
+    client.publish(MQTT_TOPIC_SERVO, estado);
   });
 
   socket.on("disconnect", () => {
@@ -66,13 +72,9 @@ io.on("connection", (socket) => {
 });
 
 // ------------------- SERVIDOR WEB -------------------
-app.use(express.static("public")); // Sirve tu carpeta del frontend
+app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 Servidor web corriendo en puerto ${PORT}`);
-});
-socket.on("servoControl", (estado) => {
-  console.log(`⚙️ Comando servo recibido: ${estado}`);
-  client.publish("esp32/servo", estado); // Nuevo topic MQTT
 });
