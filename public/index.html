@@ -28,10 +28,7 @@
       body::before {
         content: "";
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        inset: 0;
         background-image:
           radial-gradient(circle at 20% 50%, rgba(34, 197, 94, 0.1) 0%, transparent 50%),
           radial-gradient(circle at 80% 80%, rgba(74, 222, 128, 0.1) 0%, transparent 50%);
@@ -164,15 +161,15 @@
         }
       }
 
-      /* === ESTILOS NUEVOS PARA LOS BOTONES LED === */
-      .led-buttons {
+      /* === BOTONES DE CONTROL === */
+      .led-buttons, .servo-buttons {
         display: flex;
         justify-content: center;
         gap: 1rem;
         margin-top: 1rem;
       }
 
-      .led-btn {
+      .led-btn, .servo-btn {
         background: rgba(34, 197, 94, 0.2);
         color: #bbf7d0;
         border: 1px solid rgba(134, 239, 172, 0.4);
@@ -183,13 +180,13 @@
         transition: all 0.3s ease;
       }
 
-      .led-btn:hover {
+      .led-btn:hover, .servo-btn:hover {
         background: #22c55e;
         color: #0f2818;
         box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
       }
 
-      .led-btn.active {
+      .led-btn.active, .servo-btn.active {
         background: #22c55e;
         color: #0f2818;
         box-shadow: 0 0 15px rgba(34, 197, 94, 0.6);
@@ -209,77 +206,43 @@
 
   <body>
     <div class="header">
-      <h1>Grupo de Ñoñor</h1>
-      <p class="subtitle">Monitoreo en tiempo real de sensores ESP32</p>
+      <h1>🌾 Dashboard IoT — Grupo de Ñoñor</h1>
+      <p class="subtitle">Monitoreo y control en tiempo real con ESP32</p>
     </div>
 
     <div class="dashboard">
-      <div class="card">
-        <span class="sensor-icon">🌡️</span>
+      <!-- === TARJETAS DE SENSORES === -->
+      <div class="card"><span class="sensor-icon">🌡️</span>
         <div class="sensor-label">Temperatura Ambiente</div>
-        <div class="sensor-value">
-          <span id="tempDHT">--</span>
-          <span class="sensor-unit">°C</span>
-        </div>
-        <div class="status-bar">
-          <span class="status-indicator"></span>
-          Sensor DHT11
-        </div>
+        <div class="sensor-value"><span id="tempDHT">--</span><span class="sensor-unit">°C</span></div>
+        <div class="status-bar"><span class="status-indicator"></span> Sensor DHT11</div>
       </div>
 
-      <div class="card">
-        <span class="sensor-icon">💧</span>
+      <div class="card"><span class="sensor-icon">💧</span>
         <div class="sensor-label">Humedad Relativa</div>
-        <div class="sensor-value">
-          <span id="humDHT">--</span>
-          <span class="sensor-unit">%</span>
-        </div>
-        <div class="status-bar">
-          <span class="status-indicator"></span>
-          Sensor DHT11
-        </div>
+        <div class="sensor-value"><span id="humDHT">--</span><span class="sensor-unit">%</span></div>
+        <div class="status-bar"><span class="status-indicator"></span> Sensor DHT11</div>
       </div>
 
-      <div class="card">
-        <span class="sensor-icon">🌤️</span>
+      <div class="card"><span class="sensor-icon">🌤️</span>
         <div class="sensor-label">Temperatura BMP</div>
-        <div class="sensor-value">
-          <span id="tempBMP">--</span>
-          <span class="sensor-unit">°C</span>
-        </div>
-        <div class="status-bar">
-          <span class="status-indicator"></span>
-          Sensor BMP180
-        </div>
+        <div class="sensor-value"><span id="tempBMP">--</span><span class="sensor-unit">°C</span></div>
+        <div class="status-bar"><span class="status-indicator"></span> Sensor BMP180</div>
       </div>
 
-      <div class="card">
-        <span class="sensor-icon">🧭</span>
+      <div class="card"><span class="sensor-icon">🧭</span>
         <div class="sensor-label">Presión Atmosférica</div>
-        <div class="sensor-value">
-          <span id="presion">--</span>
-          <span class="sensor-unit">hPa</span>
-        </div>
-        <div class="status-bar">
-          <span class="status-indicator"></span>
-          Sensor BMP180
-        </div>
+        <div class="sensor-value"><span id="presion">--</span><span class="sensor-unit">hPa</span></div>
+        <div class="status-bar"><span class="status-indicator"></span> Sensor BMP180</div>
       </div>
 
-      <div class="card">
-        <span class="sensor-icon">📏</span>
+      <div class="card"><span class="sensor-icon">📏</span>
         <div class="sensor-label">Distancia</div>
-        <div class="sensor-value">
-          <span id="distancia">--</span>
-          <span class="sensor-unit">cm</span>
-        </div>
-        <div class="status-bar">
-          <span class="status-indicator"></span>
-          Sensor Ultrasónico
-        </div>
+        <div class="sensor-value"><span id="distancia">--</span><span class="sensor-unit">cm</span></div>
+        <div class="status-bar"><span class="status-indicator"></span> Sensor Ultrasónico</div>
       </div>
 
-      <!-- === NUEVA CARD PARA CONTROL DE LED === -->
+      <!-- === CONTROL LED === -->
       <div class="card">
         <span class="sensor-icon">💡</span>
         <div class="sensor-label">Control de LED</div>
@@ -287,17 +250,25 @@
           <button id="btnOn" class="led-btn">Encender</button>
           <button id="btnOff" class="led-btn">Apagar</button>
         </div>
-        <div class="status-bar">
-          <span class="status-indicator"></span>
-          Control vía MQTT
+        <div class="status-bar"><span class="status-indicator"></span> Control vía MQTT</div>
+      </div>
+
+      <!-- === CONTROL SERVOMOTOR === -->
+      <div class="card">
+        <span class="sensor-icon">⚙️</span>
+        <div class="sensor-label">Control de Servomotor</div>
+        <div class="servo-buttons">
+          <button id="btnAbrir" class="servo-btn">Abrir</button>
+          <button id="btnCerrar" class="servo-btn">Cerrar</button>
         </div>
+        <div class="status-bar"><span class="status-indicator"></span> Servo controlado vía MQTT</div>
       </div>
     </div>
 
     <script>
       const socket = io();
 
-      // Recibir datos de sensores
+      // === ACTUALIZAR DATOS DE SENSORES ===
       socket.on("sensorData", (data) => {
         document.getElementById("tempDHT").textContent = data.temperatura_dht?.toFixed(1) ?? "--";
         document.getElementById("humDHT").textContent = data.humedad_dht?.toFixed(1) ?? "--";
@@ -306,20 +277,32 @@
         document.getElementById("distancia").textContent = data.distancia_cm?.toFixed(1) ?? "--";
       });
 
-      // === Control de LED ===
+      // === CONTROL LED ===
       const btnOn = document.getElementById("btnOn");
       const btnOff = document.getElementById("btnOff");
-
       btnOn.addEventListener("click", () => {
         socket.emit("ledControl", "ON");
         btnOn.classList.add("active");
         btnOff.classList.remove("active");
       });
-
       btnOff.addEventListener("click", () => {
         socket.emit("ledControl", "OFF");
         btnOff.classList.add("active");
         btnOn.classList.remove("active");
+      });
+
+      // === CONTROL SERVOMOTOR ===
+      const btnAbrir = document.getElementById("btnAbrir");
+      const btnCerrar = document.getElementById("btnCerrar");
+      btnAbrir.addEventListener("click", () => {
+        socket.emit("servoControl", "ABRIR");
+        btnAbrir.classList.add("active");
+        btnCerrar.classList.remove("active");
+      });
+      btnCerrar.addEventListener("click", () => {
+        socket.emit("servoControl", "CERRAR");
+        btnCerrar.classList.add("active");
+        btnAbrir.classList.remove("active");
       });
     </script>
   </body>
