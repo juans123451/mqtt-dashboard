@@ -72,3 +72,7 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 Servidor web corriendo en puerto ${PORT}`);
 });
+socket.on("servoControl", (estado) => {
+  console.log(`⚙️ Comando servo recibido: ${estado}`);
+  client.publish("esp32/servo", estado); // Nuevo topic MQTT
+});
