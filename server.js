@@ -96,6 +96,63 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("❌ Cliente desconectado");
   });
+  socket.on("voiceCommand", (texto) => {
+  console.log("🎙️ Texto crudo:", texto);
+
+  // ===== NORMALIZACIÓN =====
+  const comando = texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quitar tildes
+    .replace(/[^\w\s]/g, "") // quitar signos
+    .trim();
+
+  console.log("🧠 Comando normalizado:", comando);
+
+  // ===== LUZ =====
+  if (
+    (comando.includes("prende") || comando.includes("enciende")) &&
+    comando.includes("luz")
+  ) {
+    client.publish(MQTT_TOPIC_LED, "ON");
+    socket.emit("botMessage", "💡 Luz encendida");
+    return;
+  }
+
+  if (
+    (comando.includes("apaga") || comando.includes("apagar")) &&
+    comando.includes("luz")
+  ) {
+    client.publish(MQTT_TOPIC_LED, "OFF");
+    socket.emit("botMessage", "💡 Luz apagada");
+    return;
+  }
+
+  // ===== PUERTA =====
+  if (
+    (comando.includes("abre") || comando.includes("abrir")) &&
+    comando.includes("puerta")
+  ) {
+    client.publish(MQTT_TOPIC_SERVO, "ABRIR");
+    socket.emit("botMessage", "🚪 Puerta abierta");
+    return;
+  }
+
+  if (
+    (comando.includes("cierra") || comando.includes("cerrar")) &&
+    comando.includes("puerta")
+  ) {
+    client.publish(MQTT_TOPIC_SERVO, "CERRAR");
+    socket.emit("botMessage", "🚪 Puerta cerrada");
+    return;
+  }
+
+  socket.emit(
+    "botMessage",
+    "🤖 No entendí el comando. Usa: prender luz, apagar luz, abrir puerta, cerrar puerta."
+  );
+});
+
 });
 
 // ------------------- CHATBOT (GROQ + LLAMA 3) -------------------

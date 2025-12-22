@@ -40,6 +40,49 @@
         overflow-x: hidden;
         padding: 2rem 1rem;
       }
+      .voice-btn {
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 0.9rem;
+  background: linear-gradient(135deg, var(--orange-accent), var(--orange-dark));
+  color: white;
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  box-shadow: 0 8px 25px rgba(251, 146, 60, 0.6);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.voice-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 35px rgba(251, 146, 60, 0.8);
+}
+
+.voice-btn:active {
+  transform: scale(0.97);
+}
+
+.voice-btn.listening {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.9);
+  animation: pulse-voice 1.5s infinite;
+}
+
+@keyframes pulse-voice {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.9);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 40px rgba(239, 68, 68, 1);
+  }
+}
+
 
       body::before {
         content: "";
@@ -321,7 +364,7 @@
         background: rgba(0, 0, 0, 0.3);
       }
 
-      .chat-input-group {
+      .put-group {
         padding: 1.2rem;
         border-top: 1px solid rgba(255, 255, 255, 0.15);
         background: rgba(6, 78, 59, 0.8);
@@ -591,6 +634,8 @@
         </div>
         <div id="chat-messages"></div>
         <div class="chat-input-group">
+          <button id="voiceBtn" class="voice-btn">🎙️ Hablar</button>
+
           <input
             id="chat-input"
             type="text"
@@ -611,7 +656,7 @@
 
         <div class="card">
           <span class="sensor-icon">💧</span>
-          <div class="sensor-label">Humedad Relativa</div>
+          <div class="sensor-label">Humedad suelo</div>
           <div class="sensor-value"><span id="humDHT">--</span><span class="sensor-unit">%</span></div>
           <div class="status-bar"><span class="status-indicator"></span> Sensor DHT11</div>
         </div>
@@ -631,9 +676,9 @@
         </div>
 
         <div class="card">
-          <span class="sensor-icon">📏</span>
-          <div class="sensor-label">Distancia</div>
-          <div class="sensor-value"><span id="distancia">--</span><span class="sensor-unit">cm</span></div>
+          <span class="sensor-icon">🛢️</span>
+          <div class="sensor-label">nivel de tanque</div>
+          <div class="sensor-value"><span id="nivel">--</span><span class="sensor-unit"></span></div>
           <div class="status-bar"><span class="status-indicator"></span> Sensor Ultrasónico</div>
         </div>
 
@@ -670,6 +715,8 @@
       </div>
       <div class="mobile-chat-messages" id="mobileChatMessages"></div>
       <div class="mobile-chat-input-group">
+        <button id="voiceBtn" class="voice-btn">🎙️ Hablar</button>
+
         <input type="text" id="mobileChatInput" placeholder="Escribe tu pregunta..." />
         <button id="mobileChatSend">Enviar</button>
       </div>
@@ -680,19 +727,20 @@
 
       let currentSensorData = {
         temperatura_dht: "--",
-        humedad_dht: "--",
+        humedad_suelo: "--",
         temperatura_bmp: "--",
         presion: "--",
-        distancia_cm: "--"
+        nivel_tanque: "--"
       };
 
       socket.on("sensorData", (data) => {
         currentSensorData = data;
         document.getElementById("tempDHT").textContent = data.temperatura_dht?.toFixed(1) ?? "--";
-        document.getElementById("humDHT").textContent = data.humedad_dht?.toFixed(1) ?? "--";
+        document.getElementById("humDHT").textContent = data.humedad_suelo?.toFixed(1) ?? "--";
         document.getElementById("tempBMP").textContent = data.temperatura_bmp?.toFixed(1) ?? "--";
         document.getElementById("presion").textContent = data.presion?.toFixed(1) ?? "--";
-        document.getElementById("distancia").textContent = data.distancia_cm?.toFixed(1) ?? "--";
+       document.getElementById("nivel").textContent = data.nivel_tanque ?? "--";
+
       });
 
       // === CONTROLES LED/SERVO ===
@@ -741,6 +789,9 @@
         container.scrollTop = container.scrollHeight;
         return id;
       }
+      socket.on("botMessage", (msg) => {
+  appendMessage(msg, "bot", "chat-messages");
+});
 
       function removeMessage(id, containerId) {
         const container = document.getElementById(containerId);
@@ -774,6 +825,7 @@
         }
       }
 
+
       // === EVENTOS DESKTOP ===
       const chatInput = document.getElementById("chat-input");
       const chatSend = document.getElementById("chat-send");
@@ -806,6 +858,39 @@
       mobileChatInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") mobileChatSend.click();
       });
+      // ================= VOZ =================
+const voiceBtn = document.getElementById("voiceBtn");
+
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognition) {
+  const recognition = new SpeechRecognition();
+  recognition.lang = "es-ES";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  voiceBtn.addEventListener("click", () => {
+    recognition.start();
+    appendMessage("🎙️ Escuchando...", "bot", "chat-messages");
+  });
+
+  recognition.onresult = (event) => {
+    const texto = event.results[0][0].transcript.toLowerCase();
+    appendMessage(texto, "user", "chat-messages");
+
+    // 👉 ENVÍA COMANDO DIRECTO
+    socket.emit("voiceCommand", texto);
+  };
+
+  recognition.onerror = () => {
+    appendMessage("❌ Error al reconocer la voz", "bot", "chat-messages");
+  };
+} else {
+  voiceBtn.disabled = true;
+  voiceBtn.textContent = "❌ Voz no soportada";
+}
+
     </script>
   </body>
 </html>
