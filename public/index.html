@@ -634,7 +634,7 @@
         </div>
         <div id="chat-messages"></div>
         <div class="chat-input-group">
-          <button id="voiceBtn" class="voice-btn">🎙️ Hablar</button>
+          <button id="voiceBtnDesktop" class="voice-btn">🎙️ Hablar</button>
 
           <input
             id="chat-input"
@@ -715,7 +715,7 @@
       </div>
       <div class="mobile-chat-messages" id="mobileChatMessages"></div>
       <div class="mobile-chat-input-group">
-        <button id="voiceBtn" class="voice-btn">🎙️ Hablar</button>
+        <button id="voiceBtnMobile" class="voice-btn">🎙️ Hablar</button>
 
         <input type="text" id="mobileChatInput" placeholder="Escribe tu pregunta..." />
         <button id="mobileChatSend">Enviar</button>
@@ -864,32 +864,33 @@ const voiceBtn = document.getElementById("voiceBtn");
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
-if (SpeechRecognition) {
+function initVoice(buttonId, chatContainer) {
+  const btn = document.getElementById(buttonId);
+  if (!btn || !SpeechRecognition) return;
+
   const recognition = new SpeechRecognition();
   recognition.lang = "es-ES";
   recognition.continuous = false;
   recognition.interimResults = false;
 
-  voiceBtn.addEventListener("click", () => {
+  btn.addEventListener("click", () => {
     recognition.start();
-    appendMessage("🎙️ Escuchando...", "bot", "chat-messages");
+    appendMessage("🎙️ Escuchando...", "bot", chatContainer);
   });
 
   recognition.onresult = (event) => {
     const texto = event.results[0][0].transcript.toLowerCase();
-    appendMessage(texto, "user", "chat-messages");
-
-    // 👉 ENVÍA COMANDO DIRECTO
+    appendMessage(texto, "user", chatContainer);
     socket.emit("voiceCommand", texto);
   };
 
   recognition.onerror = () => {
-    appendMessage("❌ Error al reconocer la voz", "bot", "chat-messages");
+    appendMessage("❌ Error al reconocer la voz", "bot", chatContainer);
   };
-} else {
-  voiceBtn.disabled = true;
-  voiceBtn.textContent = "❌ Voz no soportada";
 }
+
+initVoice("voiceBtnDesktop", "chat-messages");
+initVoice("voiceBtnMobile", "mobileChatMessages");
 
     </script>
   </body>
